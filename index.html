@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>별빛 슈팅 디펜스 - 연주시차 지구 방위대</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #040712;
+    color: #ffffff;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  /* 모바일 & 태블릿 최적화 게임 컨테이너 */
+  #gameContainer {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    height: 100vh;
+    background: radial-gradient(circle at 50% 20%, #0f1c3f 0%, #040712 85%);
+    border-left: 2px solid #1e293b;
+    border-right: 2px solid #1e293b;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* 상단 HUD */
+  header {
+    padding: 12px 18px;
+    background: rgba(11, 19, 43, 0.9);
+    border-bottom: 2px solid #2b3a67;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+  }
+
+  .stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 700;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #ffd166;
+  }
+
+  .combo-badge {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #06d6a0;
+    min-height: 18px;
+    transition: transform 0.15s;
+  }
+
+  .hearts {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+  }
+
+  /* 미션 안내 바 */
+  .mission-bar {
+    background: linear-gradient(90deg, #3a0ca3, #4361ee);
+    padding: 10px 14px;
+    text-align: center;
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    z-index: 9;
+    line-height: 1.35;
+  }
+
+  .mission-bar span {
+    color: #ffbe0b;
+    text-decoration: underline;
+  }
+
+  .mission-type-tag {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-right: 6px;
+    color: #4cc9f0;
+  }
+
+  /* 미션 안내 바 */
+  .mission-bar {
+    background: linear-gradient(90deg, #3a0ca3, #4361ee);
+    padding: 8px 14px;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    z-index: 9;
+  }
+
+  .mission-bar span {
+    color: #ffbe0b;
+    text-decoration: underline;
+  }
+
+  /* 캔버스 영역 */
+  canvas {
+    flex: 1;
+    width: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* 보스전 절반 선택 패널 */
+  #bossPanel {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    background: rgba(15, 23, 42, 0.95);
+    border: 3px solid #ff006e;
+    border-radius: 18px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(255, 0, 110, 0.6);
+    display: none;
+    z-index: 20;
+  }
+
+  #bossPanel h3 {
+    color: #ff4d6d;
+    font-size: 1.15rem;
+    margin-bottom: 6px;
+    font-weight: 900;
+  }
+
+  #bossPanel p {
+    font-size: 0.95rem;
+    color: #e2e8f0;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+
+  .boss-choices {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .boss-btn {
+    flex: 1;
+    background: #1e293b;
+    border: 2px solid #4cc9f0;
+    color: #ffffff;
+    padding: 12px 6px;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+  }
+
+  .boss-btn:active {
+    transform: scale(0.94);
+    background: #4361ee;
+  }
+
+  /* 피드백 토스트 메시지 */
+  #feedbackToast {
+    position: absolute;
+    top: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-weight: 900;
+    font-size: 1rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 15;
+    white-space: nowrap;
+  }
+
+  /* 시작 / 게임오버 / 클리어 오버레이 */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 7, 18, 0.92);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 28px;
+    text-align: center;
+    z-index: 30;
+  }
+
+  .overlay h1 {
+    font-size: 2.1rem;
+    font-weight: 900;
+    color: #4cc9f0;
+    margin-bottom: 10px;
+    text-shadow: 0 0 18px rgba(76, 201, 240, 0.6);
+  }
+
+  .rule-card {
+    background: #111936;
+    border: 2px solid #2b3a67;
+    border-radius: 16px;
+    padding: 18px;
+    margin: 16px 0 24px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .rule-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 0.98rem;
+    line-height: 1.45;
+    color: #e2e8f0;
+  }
+
+  .rule-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .rule-badge {
+    background: #ffbe0b;
+    color: #040712;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .start-btn {
+    background: linear-gradient(135deg, #06d6a0, #118ab2);
+    color: #040712;
+    border: none;
+    padding: 16px 42px;
+    border-radius: 30px;
+    font-size: 1.3rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 6px 25px rgba(6, 214, 160, 0.5);
+    transition: transform 0.15s;
+  }
+
+  .start-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* 사전 개념 퀴즈 버튼 스타일 */
+  .quiz-box {
+    background: rgba(15, 23, 42, 0.9);
+    border: 2px solid #4cc9f0;
+    border-radius: 16px;
+    padding: 18px;
+    margin: 12px 0 18px;
+    width: 100%;
+  }
+
+  .quiz-question {
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .quiz-blank {
+    display: inline-block;
+    min-width: 72px;
+    padding: 2px 10px;
+    border-bottom: 3px solid #ffbe0b;
+    color: #ffbe0b;
+    font-weight: 900;
+  }
+
+  .quiz-btn-group {
+    display: flex;
+    gap: 12px;
+  }
+
+  .quiz-choice-btn {
+    flex: 1;
+    padding: 14px 10px;
+    border-radius: 12px;
+    border: 2px solid #3b82f6;
+    background: #1e293b;
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .quiz-choice-btn:hover {
+    background: #2563eb;
+  }
+
+  .quiz-choice-btn.correct {
+    background: #06d6a0;
+    border-color: #06d6a0;
+    color: #040712;
+  }
+
+  .quiz-choice-btn.wrong {
+    background: #ff4d6d;
+    border-color: #ff4d6d;
+    color: #ffffff;
+  }
+
+  .quiz-feedback {
+    margin-top: 10px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    min-height: 20px;
+  }
+
+  /* 랭킹 입력 및 명예의 전당 스타일 */
+  .rank-form {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .rank-input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 2px solid #3b82f6;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+    outline: none;
+  }
+
+  .rank-input::placeholder {
+    color: #64748b;
+  }
+
+  .rank-submit-btn {
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: none;
+    background: #ffbe0b;
+    color: #040712;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .rank-submit-btn:disabled {
+    background: #475569;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  .leaderboard-box {
+    width: 100%;
+    background: #0b132b;
+    border: 2px solid #2b3a67;
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 16px;
+    max-height: 185px;
+    overflow-y: auto;
+    text-align: left;
+  }
+
+  .leaderboard-title {
+    font-size: 0.92rem;
+    font-weight: 900;
+    color: #4cc9f0;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .rank-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .rank-row.top1 { background: rgba(255, 190, 11, 0.16); color: #ffd166; font-weight: 900; }
+  .rank-row.top2 { color: #e2e8f0; font-weight: 800; }
+  .rank-row.top3 { color: #cbd5e1; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <header>
+    <div class="stat-box">
+      <span class="stat-label">ROUND</span>
+      <span class="stat-value" id="stageText">1 라운드</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">지구 방어력</span>
+      <span class="hearts" id="heartsText">❤️❤️❤️</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">점수 / 콤보</span>
+      <span class="stat-value" id="scoreText">0점</span>
+      <span class="combo-badge" id="comboText"></span>
+    </div>
+  </header>
+
+  <div class="mission-bar" id="missionBar">
+    🚨 <span>가장 가까운 별</span>부터 터치해서 격추!
+  </div>
+
+  <div id="feedbackToast"></div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- 보스전 절반 각도 선택 UI -->
+  <div id="bossPanel">
+    <h3>⚠️ 거대 보스 출현! 방어막 해제 코드 입력!</h3>
+    <p id="bossQuestion">1월~7월 전체 이동 각도(시차)가 [ 0.8" ] 다! 진짜 연주시차는?</p>
+    <div class="boss-choices" id="bossChoices"></div>
+  </div>
+
+  <!-- 시작 화면 (1단계: 사전 개념 확인 문제 포함) -->
+  <div class="overlay" id="startOverlay">
+    <h1>🚀 별빛 슈팅 디펜스</h1>
+    <p style="color: #94a3b8; font-weight: 700;">출격 전 핵심 개념을 먼저 확인하세요!</p>
+
+    <!-- 사전 개념 확인 퀴즈 영역 -->
+    <div class="quiz-box">
+      <div style="font-size: 0.82rem; color: #ffbe0b; font-weight: 900; margin-bottom: 6px;">🔒 출격 인증 문제</div>
+      <p class="quiz-question">
+        “별의 <b>연주시차가 작으면</b><br>지구에서 별까지의 거리는 <span class="quiz-blank" id="quizBlank">?</span>”
+      </p>
+      <div class="quiz-btn-group">
+        <button class="quiz-choice-btn" id="btnFar" onclick="checkPreQuiz('far')">멀다 🌌</button>
+        <button class="quiz-choice-btn" id="btnNear" onclick="checkPreQuiz('near')">가깝다 🌍</button>
+      </div>
+      <div class="quiz-feedback" id="quizFeedback">정답을 맞히면 출격 버튼이 열립니다!</div>
+    </div>
+
+    <div class="rule-card" style="margin: 0 0 18px; padding: 14px;">
+      <div class="rule-item" style="margin-bottom: 8px; font-size: 0.9rem;">
+        <span class="rule-badge">무한 도전</span>
+        <div>라운드가 올라갈수록 별의 하강 속도가 빨라집니다! 최대한 높은 점수에 도전하세요.</div>
+      </div>
+      <div class="rule-item" style="font-size: 0.9rem;">
+        <span class="rule-badge">콤보/감점</span>
+        <div>연달아 맞히면 <b>콤보 보너스!</b> 틀리면 <b>-50점 감점</b>됩니다.</div>
+      </div>
+    </div>
+
+    <button class="start-btn" id="mainStartBtn" onclick="startGame()" style="opacity: 0.4; pointer-events: none;">
+      🔒 위 문제를 먼저 맞히세요
+    </button>
+  </div>
+
+  <!-- 결과 & 랭킹 화면 -->
+  <div class="overlay" id="endOverlay" style="display: none;">
+    <h1 id="endTitle" style="font-size: 1.8rem;">💥 지구 방어 종료!</h1>
+    <p id="endSubtitle" style="font-size: 1rem; color: #e2e8f0; margin: 6px 0 12px; font-weight: 700;"></p>
+
+    <div class="rule-card" style="text-align: center; margin: 0 0 12px; padding: 14px;">
+      <p style="color: #ffd166; font-size: 1.45rem; font-weight: 900; margin-bottom: 4px;" id="finalScoreText">최종 점수: 0점</p>
+      <p style="color: #06d6a0; font-size: 0.95rem; font-weight: 800;" id="maxComboText">도달 라운드: 1R · 최대 0 COMBO</p>
+    </div>
+
+    <!-- 학번 이름 입력 폼 -->
+    <div class="rank-form" id="rankForm">
+      <input type="text" id="studentInfoInput" class="rank-input" placeholder="학번 이름 입력 (예: 30215 김민수)" maxlength="16">
+      <button class="rank-submit-btn" id="rankSubmitBtn" onclick="submitScore()">랭킹 등록 🏆</button>
+    </div>
+
+    <!-- 실시간 랭킹 보드 -->
+    <div class="leaderboard-box">
+      <div class="leaderboard-title">
+        <span>🏆 명예의 전당 (TOP 10)</span>
+        <span id="dbStatusBadge" style="font-size: 0.78rem; color: #94a3b8;">실시간 연동 중...</span>
+      </div>
+      <div id="leaderboardList">
+        <div style="text-align: center; color: #64748b; padding: 16px 0; font-size: 0.9rem;">기록을 불러오는 중입니다...</div>
+      </div>
+    </div>
+
+    <button class="start-btn" style="padding: 13px 34px; font-size: 1.15rem;" onclick="startGame()">다시 도전하기 🔄</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  // =========================================================================
+  // [선생님용 Firebase 설정 반영 완료]
+  // =========================================================================
+  const MANUAL_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBRyZALh3Z_4yWHv1sKMJrt3M3jjxAxJeI",
+    authDomain: "shootingstar-59bc5.firebaseapp.com",
+    projectId: "shootingstar-59bc5",
+    storageBucket: "shootingstar-59bc5.firebasestorage.app",
+    messagingSenderId: "598747446935",
+    appId: "1:598747446935:web:1b3f5e2b500e1f6176b3d2",
+    measurementId: "G-WTBNSXPLST"
+  };
+
+  let db = null;
+  let auth = null;
+  let currentUser = null;
+  let appId = typeof __app_id !== 'undefined' ? __app_id : 'starlight-parallax-game';
+  let rankingData = [];
+
+  async function initFirebase() {
+    try {
+      let configToUse = null;
+      if (MANUAL_FIREBASE_CONFIG.apiKey && MANUAL_FIREBASE_CONFIG.projectId) {
+        configToUse = MANUAL_FIREBASE_CONFIG;
+      } else if (typeof __firebase_config !== 'undefined') {
+        configToUse = JSON.parse(__firebase_config);
+      }
+
+      if (!configToUse) {
+        document.getElementById('dbStatusBadge').textContent = '⚠️ Firebase 키 미설정 (임시 모드)';
+        renderLeaderboard();
+        return;
+      }
+
+      const app = initializeApp(configToUse);
+      auth = getAuth(app);
+      db = getFirestore(app);
+
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        const cred = await signInWithCustomToken(auth, __initial_auth_token);
+        currentUser = cred.user;
+      } else {
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
+      }
+
+      document.getElementById('dbStatusBadge').textContent = '🟢 실시간 랭킹 연결됨';
+      subscribeLeaderboard();
+    } catch (err) {
+      console.error('Firebase 연결 오류:', err);
+      document.getElementById('dbStatusBadge').textContent = '⚠️ 오프라인 모드';
+      renderLeaderboard();
+    }
+  }
+
+  function subscribeLeaderboard() {
+    if (!db || !currentUser) return;
+    const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'starlight_rankings');
+    onSnapshot(colRef, (snapshot) => {
+      const list = [];
+      snapshot.forEach(doc => {
+        list.push(doc.data());
+      });
+      // 메모리 내 점수 내림차순 정렬 (동점일 경우 도달 라운드 높은 순)
+      list.sort((a, b) => (b.score - a.score) || (b.stage - a.stage));
+      rankingData = list.slice(0, 10);
+      renderLeaderboard();
+    }, (error) => {
+      console.error('랭킹 구독 오류:', error);
+    });
+  }
+
+  function renderLeaderboard() {
+    const listEl = document.getElementById('leaderboardList');
+    if (rankingData.length === 0) {
+      listEl.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 14px 0; font-size: 0.9rem;">아직 등록된 기록이 없습니다. 첫 1등에 도전하세요!</div>`;
+      return;
+    }
+
+    listEl.innerHTML = rankingData.map((item, idx) => {
+      const rankNum = idx + 1;
+      const medal = rankNum === 1 ? '🥇' : (rankNum === 2 ? '🥈' : (rankNum === 3 ? '🥉' : `${rankNum}위`));
+      const rowClass = rankNum <= 3 ? `rank-row top${rankNum}` : 'rank-row';
+      const safeName = String(item.studentName || '익명').replace(/[<>&"']/g, '');
+      return `
+        <div class="${rowClass}">
+          <span>${medal} <b>${safeName}</b> <small style="opacity:0.75;">(${item.stage || 1}R)</small></span>
+          <span><b>${item.score}점</b></span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 전역에서 호출 가능하도록 window에 등록
+  window.submitScore = async function() {
+    const input = document.getElementById('studentInfoInput');
+    const btn = document.getElementById('rankSubmitBtn');
+    const name = input.value.trim();
+
+    if (!name) {
+      showToast('⚠️ 학번과 이름을 입력해주세요! (예: 30101 홍길동)', '#ffbe0b');
+      input.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '등록 중...';
+
+    const record = {
+      studentName: name,
+      score: window.getFinalScore(),
+      stage: window.getFinalStage(),
+      maxCombo: window.getFinalCombo(),
+      createdAt: Date.now()
+    };
+
+    if (db && currentUser) {
+      try {
+        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'starlight_rankings');
+        await addDoc(colRef, record);
+        btn.textContent = '등록 완료! ✅';
+        showToast('🏆 랭킹에 점수가 등록되었습니다!', '#06d6a0');
+      } catch (e) {
+        console.error('저장 실패:', e);
+        btn.disabled = false;
+        btn.textContent = '다시 시도';
+        showToast('❌ 저장 중 오류가 발생했습니다.', '#ff4d6d');
+      }
+    } else {
+      // Firebase 키가 아직 입력되지 않았을 때 화면 테스트용 로컬 반영
+      rankingData.push(record);
+      rankingData.sort((a, b) => (b.score - a.score) || (b.stage - a.stage));
+      rankingData = rankingData.slice(0, 10);
+      renderLeaderboard();
+      btn.textContent = '임시 등록됨 ✅';
+      showToast('🏆 화면 랭킹에 반영되었습니다! (Firebase 키 연결 시 영구 저장)', '#06d6a0');
+    }
+  };
+
+  initFirebase();
+</script>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // 게임 상태
+  let gameState = 'START'; // START, PLAYING, BOSS, GAMEOVER
+  let stage = 1;
+  let lives = 3;
+  let score = 0;
+  let combo = 0;
+  let maxCombo = 0;
+  let quizPassed = false;
+
+  // 외부 모듈(Firebase)에서 현재 점수 접근용 getter
+  window.getFinalScore = () => score;
+  window.getFinalStage = () => stage;
+  window.getFinalCombo = () => maxCombo;
+
+  // 사전 개념 확인 문제 판별
+  function checkPreQuiz(choice) {
+    const blank = document.getElementById('quizBlank');
+    const feedback = document.getElementById('quizFeedback');
+    const btnFar = document.getElementById('btnFar');
+    const btnNear = document.getElementById('btnNear');
+    const startBtn = document.getElementById('mainStartBtn');
+
+    if (choice === 'far') {
+      quizPassed = true;
+      blank.textContent = '멀다!';
+      blank.style.color = '#06d6a0';
+      blank.style.borderColor = '#06d6a0';
+
+      btnFar.classList.add('correct');
+      btnNear.classList.remove('wrong');
+      feedback.style.color = '#06d6a0';
+      feedback.textContent = '⭕ 정답입니다! 멀리 있는 별일수록 연주시차가 작아집니다.';
+
+      startBtn.style.opacity = '1';
+      startBtn.style.pointerEvents = 'auto';
+      startBtn.textContent = '방어 작전 시작! ▶';
+    } else {
+      blank.textContent = '가깝다?';
+      blank.style.color = '#ff4d6d';
+      btnNear.classList.add('wrong');
+      feedback.style.color = '#ff4d6d';
+      feedback.textContent = '❌ 다시 생각해 보세요! 별이 멀리 있을수록 각도(연주시차)가 좁아집니다.';
+    }
+  }
+
+  // 현재 스테이지 미션 규칙
+  let currentMission = {
+    givenType: 'parallax',
+    targetOrder: 'closest'
+  };
+
+  let stars = [];
+  let lasers = [];
+  let particles = [];
+  let bgStars = [];
+  let boss = null;
+  let animId = null;
+
+  // 연주시차 & 거리 쌍 데이터 풀
+  const starDataPool = [
+    { pVal: 1.0, pLabel: '1.0"', dVal: 1, dLabel: '1 pc' },
+    { pVal: 0.5, pLabel: '0.5"', dVal: 2, dLabel: '2 pc' },
+    { pVal: 0.25, pLabel: '0.25"', dVal: 4, dLabel: '4 pc' },
+    { pVal: 0.2, pLabel: '0.2"', dVal: 5, dLabel: '5 pc' },
+    { pVal: 0.1, pLabel: '0.1"', dVal: 10, dLabel: '10 pc' },
+    { pVal: 0.05, pLabel: '0.05"', dVal: 20, dLabel: '20 pc' },
+    { pVal: 0.02, pLabel: '0.02"', dVal: 50, dLabel: '50 pc' },
+    { pVal: 0.01, pLabel: '0.01"', dVal: 100, dLabel: '100 pc' }
+  ];
+
+  // 무한 라운드용 미션 로테이션 (4라운드마다 보스전 출현)
+  const missionRotation = [
+    { givenType: 'parallax', targetOrder: 'closest' },    // 1R: 연주시차 제시 -> 제일 가까운 별
+    { givenType: 'distance', targetOrder: 'largest_p' },  // 2R: 거리 제시 -> 연주시차 가장 큰 별
+    { givenType: 'parallax', targetOrder: 'farthest' },   // 3R: 연주시차 제시 -> 제일 먼 별
+    { givenType: 'boss' },                                // 4R: 보스전 (절반 각도)
+    { givenType: 'distance', targetOrder: 'smallest_p' }  // 5R: 거리 제시 -> 연주시차 가장 작은 별
+  ];
+
+  function resize() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight - 95;
+    initBgStars();
+  }
+  window.addEventListener('resize', resize);
+
+  function initBgStars() {
+    bgStars = [];
+    for (let i = 0; i < 65; i++) {
+      bgStars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.6 + 0.4,
+        alpha: Math.random() * 0.6 + 0.2
+      });
+    }
+  }
+
+  function showToast(msg, color = '#06d6a0') {
+    const toast = document.getElementById('feedbackToast');
+    toast.textContent = msg;
+    toast.style.background = color;
+    toast.style.color = color === '#ffd166' || color === '#06d6a0' ? '#040712' : '#ffffff';
+    toast.style.opacity = '1';
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => {
+      toast.style.opacity = '0';
+    }, 1150);
+  }
+
+  function updateHUD() {
+    document.getElementById('stageText').textContent = `${stage} 라운드`;
+    document.getElementById('heartsText').textContent = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, 3 - lives));
+    document.getElementById('scoreText').textContent = `${score}점`;
+
+    const comboEl = document.getElementById('comboText');
+    if (combo >= 2) {
+      comboEl.textContent = `🔥 ${combo} COMBO!`;
+      comboEl.style.transform = 'scale(1.15)';
+      setTimeout(() => { comboEl.style.transform = 'scale(1)'; }, 150);
+    } else if (combo === 1) {
+      comboEl.textContent = `1 COMBO`;
+    } else {
+      comboEl.textContent = '';
+    }
+  }
+
+  function startGame() {
+    if (!quizPassed) return;
+
+    document.getElementById('startOverlay').style.display = 'none';
+    document.getElementById('endOverlay').style.display = 'none';
+    document.getElementById('bossPanel').style.display = 'none';
+
+    // 랭킹 입력 폼 초기화
+    const submitBtn = document.getElementById('rankSubmitBtn');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '랭킹 등록 🏆';
+
+    stage = 1;
+    lives = 3;
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
+    lasers = [];
+    particles = [];
+    updateHUD();
+    spawnStage(stage);
+
+    if (animId) cancelAnimationFrame(animId);
+    loop();
+  }
+
+  function spawnStage(stageNum) {
+    stars = [];
+    boss = null;
+    document.getElementById('bossPanel').style.display = 'none';
+
+    // 1~5라운드는 순서대로, 6라운드부터는 보스전 포함 무작위 출제
+    let missionCfg;
+    if (stageNum <= missionRotation.length) {
+      missionCfg = missionRotation[stageNum - 1];
+    } else if (stageNum % 4 === 0) {
+      missionCfg = { givenType: 'boss' };
+    } else {
+      const normalMissions = missionRotation.filter(m => m.givenType !== 'boss');
+      missionCfg = normalMissions[Math.floor(Math.random() * normalMissions.length)];
+    }
+
+    // 보스 스테이지 체크
+    if (missionCfg.givenType === 'boss') {
+      gameState = 'BOSS';
+      document.getElementById('missionBar').innerHTML =
+        `⚠️ <span>보스 출현!</span> 전체 시차의 <span>절반(1/2)</span>을 눌러 방어막 해제!`;
+      spawnBoss(stageNum);
+      return;
+    }
+
+    gameState = 'PLAYING';
+    currentMission = missionCfg;
+
+    // 미션 안내 문구 설정
+    const missionBar = document.getElementById('missionBar');
+    if (missionCfg.givenType === 'parallax' && missionCfg.targetOrder === 'closest') {
+      missionBar.innerHTML = `<span class="mission-type-tag">연주시차 제시</span>🚨 <span>제일 가까운 별</span>부터 순서대로 쏘세요!`;
+    } else if (missionCfg.givenType === 'parallax' && missionCfg.targetOrder === 'farthest') {
+      missionBar.innerHTML = `<span class="mission-type-tag">연주시차 제시</span>🚨 <span>제일 먼 별</span>부터 순서대로 쏘세요!`;
+    } else if (missionCfg.givenType === 'distance' && missionCfg.targetOrder === 'largest_p') {
+      missionBar.innerHTML = `<span class="mission-type-tag">거리 제시</span>🚨 <span>연주시차가 가장 큰 별</span>부터 순서대로 쏘세요!`;
+    } else if (missionCfg.givenType === 'distance' && missionCfg.targetOrder === 'smallest_p') {
+      missionBar.innerHTML = `<span class="mission-type-tag">거리 제시</span>🚨 <span>연주시차가 가장 작은 별</span>부터 순서대로 쏘세요!`;
+    }
+
+    // 라운드에 따른 출현 별 개수 (1~2R: 3개, 3~5R: 4개, 6R 이상: 5개)
+    const count = stageNum <= 2 ? 3 : (stageNum <= 5 ? 4 : 5);
+    const shuffled = [...starDataPool].sort(() => Math.random() - 0.5).slice(0, count);
+
+    const margin = 52;
+    const usableW = canvas.width - margin * 2;
+    const stepX = usableW / (count - 1);
+
+    const xPositions = [];
+    for (let i = 0; i < count; i++) xPositions.push(margin + i * stepX);
+    xPositions.sort(() => Math.random() - 0.5);
+
+    // 1라운드는 매우 느리게(0.18), 라운드를 통과할수록 점점 빨라짐 (최대 1.35)
+    const baseSpeed = Math.min(1.35, 0.18 + (stageNum - 1) * 0.09);
+
+    shuffled.forEach((item, idx) => {
+      stars.push({
+        x: xPositions[idx],
+        y: -45 - idx * 35,
+        vy: baseSpeed + Math.random() * 0.06,
+        pVal: item.pVal,
+        pLabel: item.pLabel,
+        dVal: item.dVal,
+        dLabel: item.dLabel,
+        displayLabel: missionCfg.givenType === 'parallax' ? item.pLabel : item.dLabel,
+        radius: 34,
+        wobblePhase: Math.random() * Math.PI * 2,
+        wobbleAmp: Math.min(18, item.pVal * 18)
+      });
+    });
+  }
+
+  function spawnBoss(stageNum) {
+    const totalAngles = [0.8, 0.6, 1.0, 0.5, 0.24, 0.16, 0.4];
+    const total = totalAngles[Math.floor(Math.random() * totalAngles.length)];
+    const half = Number((total / 2).toFixed(2));
+
+    boss = {
+      x: canvas.width / 2,
+      y: 120,
+      vy: 0.22,
+      totalAngle: total,
+      correctAnswer: half,
+      radius: 56
+    };
+
+    document.getElementById('bossQuestion').innerHTML =
+      `1월~7월 전체 이동 각도(시차)가 <span style="color:#ffbe0b; font-size:1.15rem;">[ ${total}" ]</span> 다!<br>진짜 <b>연주시차(절반)</b>는 얼마일까?`;
+
+    const wrong1 = total;
+    const wrong2 = Number((total * 2).toFixed(2));
+    const choices = [half, wrong1, wrong2].sort(() => Math.random() - 0.5);
+
+    const choicesDiv = document.getElementById('bossChoices');
+    choicesDiv.innerHTML = '';
+    choices.forEach(val => {
+      const btn = document.createElement('button');
+      btn.className = 'boss-btn';
+      btn.textContent = `${val}"`;
+      btn.onclick = () => checkBossAnswer(val);
+      choicesDiv.appendChild(btn);
+    });
+
+    document.getElementById('bossPanel').style.display = 'block';
+  }
+
+  function checkBossAnswer(selectedVal) {
+    if (gameState !== 'BOSS' || !boss) return;
+
+    if (selectedVal === boss.correctAnswer) {
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+      const bonus = combo * 50;
+      const earned = 300 + bonus;
+      score += earned;
+
+      fireLaser(boss.x, boss.y, '#06d6a0');
+      createExplosion(boss.x, boss.y, '#ffbe0b', 45);
+      updateHUD();
+      showToast(`🎯 보스 격파! (+${earned}점 / ${combo}콤보!)`, '#06d6a0');
+      document.getElementById('bossPanel').style.display = 'none';
+      boss = null;
+
+      setTimeout(() => {
+        advanceStage();
+      }, 900);
+    } else {
+      combo = 0;
+      score = Math.max(0, score - 50);
+      lives--;
+      updateHUD();
+      showToast(`❌ 오답 감점(-50점)! 전체 각도의 절반(1/2)을 고르세요!`, '#ff4d6d');
+      if (lives <= 0) {
+        endGame();
+      }
+    }
+  }
+
+  function advanceStage() {
+    stage++;
+    updateHUD();
+    spawnStage(stage);
+  }
+
+  function endGame() {
+    gameState = 'GAMEOVER';
+    document.getElementById('bossPanel').style.display = 'none';
+    const overlay = document.getElementById('endOverlay');
+
+    document.getElementById('endTitle').textContent = '💥 지구 방어 작전 종료!';
+    document.getElementById('endTitle').style.color = '#ff4d6d';
+    document.getElementById('endSubtitle').textContent = '학번과 이름을 입력하고 반 랭킹에 점수를 등록하세요!';
+
+    document.getElementById('finalScoreText').textContent = `최종 점수: ${score}점`;
+    document.getElementById('maxComboText').textContent = `도달 기록: ${stage}라운드 · 최대 ${maxCombo} COMBO`;
+    overlay.style.display = 'flex';
+  }
+
+  // 현재 미션 조건에 맞는 정답 별인지 판별
+  function isCorrectTarget(tappedStar) {
+    const order = currentMission.targetOrder;
+    const epsilon = 0.0001;
+
+    if (order === 'closest' || order === 'largest_p') {
+      const maxP = Math.max(...stars.map(s => s.pVal));
+      return Math.abs(tappedStar.pVal - maxP) < epsilon;
+    } else if (order === 'farthest' || order === 'smallest_p') {
+      const minP = Math.min(...stars.map(s => s.pVal));
+      return Math.abs(tappedStar.pVal - minP) < epsilon;
+    }
+    return false;
+  }
+
+  // 터치 / 클릭 이벤트 처리
+  function handleTap(clientX, clientY) {
+    if (gameState !== 'PLAYING' || stars.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+
+    let hitIndex = -1;
+    let minTapDist = Infinity;
+
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      const curX = s.x + Math.sin(s.wobblePhase) * s.wobbleAmp;
+      const dist = Math.hypot(x - curX, y - s.y);
+      if (dist <= s.radius + 20 && dist < minTapDist) {
+        minTapDist = dist;
+        hitIndex = i;
+      }
+    }
+
+    if (hitIndex === -1) return;
+
+    const tappedStar = stars[hitIndex];
+    const curX = tappedStar.x + Math.sin(tappedStar.wobblePhase) * tappedStar.wobbleAmp;
+
+    if (isCorrectTarget(tappedStar)) {
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+      const comboBonus = (combo - 1) * 30;
+      const earned = 100 + comboBonus;
+      score += earned;
+
+      fireLaser(curX, tappedStar.y, '#4cc9f0');
+      createExplosion(curX, tappedStar.y, '#ffd166', 25);
+      updateHUD();
+
+      const comboMsg = combo >= 2 ? ` (${combo}콤보 +${comboBonus}점!)` : '';
+      showToast(`💥 명중! +${earned}점${comboMsg} [${tappedStar.pLabel} ↔ ${tappedStar.dLabel}]`, '#06d6a0');
+      stars.splice(hitIndex, 1);
+
+      if (stars.length === 0) {
+        setTimeout(() => {
+          advanceStage();
+        }, 500);
+      }
+    } else {
+      combo = 0;
+      score = Math.max(0, score - 50);
+      lives--;
+
+      fireLaser(curX, tappedStar.y, '#ff4d6d');
+      updateHUD();
+
+      let hintMsg = '순서가 틀렸어요!';
+      if (currentMission.targetOrder === 'closest') hintMsg = '연주시차가 더 큰(가까운) 별을 먼저 쏘세요!';
+      else if (currentMission.targetOrder === 'farthest') hintMsg = '연주시차가 더 작은(먼) 별을 먼저 쏘세요!';
+      else if (currentMission.targetOrder === 'largest_p') hintMsg = '거리가 더 가까운(연주시차가 큰) 별을 먼저 쏘세요!';
+      else if (currentMission.targetOrder === 'smallest_p') hintMsg = '거리가 더 먼(연주시차가 작은) 별을 먼저 쏘세요!';
+
+      showToast(`❌ -50점 & 콤보 초기화! ${hintMsg}`, '#ff4d6d');
+
+      if (lives <= 0) {
+        endGame();
+      }
+    }
+  }
+
+  canvas.addEventListener('mousedown', (e) => handleTap(e.clientX, e.clientY));
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (e.touches.length > 0) {
+      handleTap(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+
+  function fireLaser(targetX, targetY, color) {
+    lasers.push({
+      startX: canvas.width / 2,
+      startY: canvas.height - 35,
+      endX: targetX,
+      endY: targetY,
+      color: color,
+      alpha: 1.0
+    });
+  }
+
+  function createExplosion(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 4 + 1.5;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color,
+        alpha: 1.0,
+        size: Math.random() * 4 + 2
+      });
+    }
+  }
+
+  function drawStarPolygon(cx, cy, spikes, outerR, innerR, fill, stroke) {
+    let rot = Math.PI / 2 * 3;
+    let step = Math.PI / spikes;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerR);
+    for (let i = 0; i < spikes; i++) {
+      ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+      rot += step;
+      ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+      rot += step;
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. 배경 별빛
+    bgStars.forEach(s => {
+      ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 2. 하단 지구 방어 기지 그리기
+    const earthY = canvas.height + 35;
+    const grad = ctx.createRadialGradient(canvas.width / 2, earthY, 20, canvas.width / 2, earthY, 110);
+    grad.addColorStop(0, '#4cc9f0');
+    grad.addColorStop(0.6, '#1d4ed8');
+    grad.addColorStop(1, '#091536');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, earthY, 95, Math.PI, 0);
+    ctx.fill();
+
+    // 포탑
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(canvas.width / 2 - 8, canvas.height - 68, 16, 18);
+    ctx.fillStyle = '#06d6a0';
+    ctx.font = 'bold 14px Pretendard, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🌍 지구 방어 기지', canvas.width / 2, canvas.height - 14);
+
+    // 3. 일반 스테이지 별 업데이트 & 그리기
+    if (gameState === 'PLAYING') {
+      const dangerLine = canvas.height - 75;
+
+      // 위험 경고선
+      ctx.strokeStyle = 'rgba(255, 77, 109, 0.35)';
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(0, dangerLine);
+      ctx.lineTo(canvas.width, dangerLine);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      for (let i = stars.length - 1; i >= 0; i--) {
+        const s = stars[i];
+        s.y += s.vy;
+        s.wobblePhase += 0.06;
+        const curX = s.x + Math.sin(s.wobblePhase) * s.wobbleAmp;
+
+        ctx.save();
+        ctx.shadowColor = s.pVal >= 0.5 ? '#ffbe0b' : '#4cc9f0';
+        ctx.shadowBlur = 15;
+        const borderColor = currentMission.givenType === 'parallax' ? '#ffd166' : '#4cc9f0';
+        drawStarPolygon(curX, s.y, 5, s.radius, s.radius * 0.52, '#1e293b', borderColor);
+        ctx.restore();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 17px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(s.displayLabel, curX, s.y + 2);
+
+        // 지구 충돌 체크
+        if (s.y + s.radius >= dangerLine) {
+          createExplosion(curX, s.y, '#ff4d6d', 30);
+          stars.splice(i, 1);
+          combo = 0;
+          score = Math.max(0, score - 50);
+          lives--;
+          updateHUD();
+          showToast('💥 지구 충돌! -50점 & 콤보 초기화!', '#ff4d6d');
+
+          if (lives <= 0) {
+            endGame();
+            return;
+          }
+          if (stars.length === 0) {
+            setTimeout(() => advanceStage(), 500);
+          }
+        }
+      }
+    }
+
+    // 4. 보스 그리기
+    if (gameState === 'BOSS' && boss) {
+      boss.y = Math.min(145, boss.y + boss.vy);
+      const pulse = Math.sin(Date.now() * 0.006) * 5;
+
+      ctx.save();
+      ctx.shadowColor = '#ff006e';
+      ctx.shadowBlur = 28;
+      drawStarPolygon(boss.x, boss.y, 8, boss.radius + pulse, (boss.radius + pulse) * 0.6, '#2b091c', '#ff006e');
+      ctx.restore();
+
+      ctx.fillStyle = '#ffd166';
+      ctx.font = 'bold 13px Pretendard, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('전체 시차(6개월)', boss.x, boss.y - 14);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 24px Pretendard, sans-serif';
+      ctx.fillText(`${boss.totalAngle}"`, boss.x, boss.y + 14);
+    }
+
+    // 5. 레이저 이펙트
+    for (let i = lasers.length - 1; i >= 0; i--) {
+      const l = lasers[i];
+      ctx.save();
+      ctx.strokeStyle = l.color;
+      ctx.globalAlpha = l.alpha;
+      ctx.lineWidth = 6;
+      ctx.shadowColor = l.color;
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.moveTo(l.startX, l.startY);
+      ctx.lineTo(l.endX, l.endY);
+      ctx.stroke();
+      ctx.restore();
+
+      l.alpha -= 0.08;
+      if (l.alpha <= 0) lasers.splice(i, 1);
+    }
+
+    // 6. 폭발 파티클
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= 0.03;
+
+      ctx.save();
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      if (p.alpha <= 0) particles.splice(i, 1);
+    }
+
+    if (gameState !== 'GAMEOVER') {
+      animId = requestAnimationFrame(() => loop());
+    }
+  }
+
+  // 초기 세팅
+  window.onload = () => {
+    resize();
+  };
+</script>
+</body>
+</html>
