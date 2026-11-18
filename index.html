@@ -552,7 +552,9 @@
   async function initFirebase() {
     try {
       let configToUse = null;
-      if (MANUAL_FIREBASE_CONFIG.apiKey && MANUAL_FIREBASE_CONFIG.projectId) {
+      const isCustomProject = Boolean(MANUAL_FIREBASE_CONFIG.apiKey && MANUAL_FIREBASE_CONFIG.projectId);
+
+      if (isCustomProject) {
         configToUse = MANUAL_FIREBASE_CONFIG;
       } else if (typeof __firebase_config !== 'undefined') {
         configToUse = JSON.parse(__firebase_config);
@@ -568,7 +570,8 @@
       auth = getAuth(app);
       db = getFirestore(app);
 
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+      // 선생님 개인 Firebase 프로젝트일 경우 바로 익명 로그인 사용
+      if (!isCustomProject && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
         const cred = await signInWithCustomToken(auth, __initial_auth_token);
         currentUser = cred.user;
       } else {
